@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>분양회 자동화 캘린더 (Sandbox)</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<style>
+* { box-sizing: border-box; }
+body { margin: 0; font-family: 'Pretendard', sans-serif; background: #0f0f10; color: #e8e8e8; padding: 20px; min-height: 100vh; }
+.app { max-width: 1280px; margin: 0 auto; }
+.title { font-size: 18px; font-weight: 600; margin: 0 0 4px; color: #f5d97a; }
+.subtitle { font-size: 12px; color: #888; margin: 0 0 16px; }
+.cb { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+.sc { display: flex; align-items: center; gap: 6px; flex: 1; min-width: 240px; background: #1a1a1d; border: 0.5px solid #2a2a2e; border-radius: 8px; padding: 6px 12px; }
+.sc input { flex: 1; border: none; background: transparent; font-family: inherit; font-size: 13px; outline: none; padding: 4px 0; color: #e8e8e8; }
+.sc i { font-size: 14px; color: #888; font-style: normal; }
+.xb { cursor: pointer; color: #888; font-size: 13px; padding: 2px 6px; border-radius: 3px; }
+.xb:hover { background: #2a2a2e; color: #e8e8e8; }
+.btn { font-size: 12px; padding: 7px 12px; background: #1a1a1d; border: 0.5px solid #3a3a3e; border-radius: 8px; color: #e8e8e8; cursor: pointer; font-family: inherit; }
+.btn:hover { background: #25252a; border-color: #4a4a4e; }
+.btn-pri { background: #f5d97a; color: #1a1a1d; border-color: #f5d97a; font-weight: 500; }
+.btn-pri:hover { background: #e8c95f; }
+.btn-dan { color: #ff6b6b; }
+.cn { display: flex; align-items: center; gap: 6px; }
+.cm { font-size: 14px; font-weight: 500; min-width: 100px; text-align: center; color: #e8e8e8; }
+.fbar { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; }
+.fchip { font-size: 12px; padding: 6px 14px; border-radius: 16px; cursor: pointer; user-select: none; border: 0.5px solid transparent; font-weight: 500; }
+.fchip.off { background: transparent !important; color: #888 !important; border-color: #2a2a2e; font-weight: 400; }
+.subbar { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; padding: 6px 12px; background: rgba(133, 183, 235, 0.12); border-radius: 8px; font-size: 11px; }
+.subbar .lab { color: #85B7EB; font-weight: 500; }
+.subchip { font-size: 11px; padding: 3px 10px; border-radius: 11px; cursor: pointer; user-select: none; background: transparent; color: #85B7EB; border: 0.5px solid #2a4a6e; }
+.subchip.on { background: #185FA5; color: #fff; border-color: #185FA5; }
+.cs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; font-size: 11px; color: #888; }
+.cs-item { display: flex; align-items: center; gap: 5px; }
+.cs-dot { width: 10px; height: 10px; border-radius: 2px; }
+.cg { display: grid; grid-template-columns: repeat(7, 1fr); border: 0.5px solid #2a2a2e; border-radius: 8px; overflow: hidden; background: #2a2a2e; gap: 0.5px; }
+.dh { background: #1a1a1d; text-align: center; padding: 8px 0; font-size: 11px; color: #888; font-weight: 500; }
+.dh.sun { color: #ff6b6b; }
+.dh.sat { color: #6ba6ff; }
+.cell { background: #131316; padding: 4px; min-height: 110px; font-size: 11px; }
+.cell.muted { background: #0f0f12; }
+.cell.muted .num { opacity: 0.35; }
+.num { font-size: 11px; color: #888; }
+.num.holiday, .num.sun { color: #ff6b6b; }
+.num.sat { color: #6ba6ff; }
+.num.today { display: inline-block; background: #f5d97a; color: #1a1a1d; width: 18px; height: 18px; border-radius: 50%; text-align: center; line-height: 18px; font-size: 10px; font-weight: 600; }
+.hn { font-size: 9px; color: #ff6b6b; margin-left: 3px; }
+.ch { margin-bottom: 3px; min-height: 16px; }
+.tk { display: block; font-size: 10px; padding: 2px 5px; margin-bottom: 1.5px; border-radius: 3px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.4; }
+.tk.done { text-decoration: line-through; opacity: 0.5; }
+.tk .memo-i { font-weight: 700; margin-right: 2px; }
+.ml { display: block; font-size: 10px; color: #888; padding: 1px 5px; }
+.pn { margin-top: 16px; padding: 16px; background: #1a1a1d; border-radius: 8px; border: 0.5px solid #2a2a2e; }
+.pr { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+.pt { font-size: 11px; padding: 3px 10px; border-radius: 3px; }
+.pn h3 { font-size: 16px; font-weight: 600; margin: 0 0 8px; color: #f5d97a; }
+.pn textarea, .pn input, .pn select { width: 100%; box-sizing: border-box; background: #0f0f12; border: 0.5px solid #2a2a2e; color: #e8e8e8; padding: 8px 10px; border-radius: 6px; font-family: inherit; font-size: 13px; }
+.pn input[disabled] { background: #2a2a2e; color: #aaa; }
+.pn textarea { min-height: 70px; resize: vertical; }
+.pn input:focus, .pn select:focus, .pn textarea:focus { outline: none; border-color: #f5d97a; }
+.pa { display: flex; gap: 8px; margin-top: 14px; align-items: center; }
+.saved-msg { color: #5dcaa5; font-size: 12px; }
+.cr { display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer; user-select: none; margin-bottom: 12px; }
+.cr input { width: auto; }
+.fg { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.fg label { font-size: 11px; color: #888; display: block; margin-bottom: 4px; }
+.fg .full { grid-column: 1/-1; }
+.hint { font-size: 11px; color: #6ba6ff; background: rgba(107, 166, 255, 0.1); padding: 8px 12px; border-radius: 6px; margin-bottom: 12px; }
+.cnt { font-size: 11px; color: #666; }
+.loading { text-align: center; padding: 60px 20px; color: #888; font-size: 14px; }
+.error { padding: 12px; background: rgba(255, 107, 107, 0.1); border: 0.5px solid #ff6b6b; color: #ff6b6b; border-radius: 6px; margin-bottom: 12px; font-size: 12px; }
+.config-warn { background: #ff6b6b; color: #fff; padding: 16px; border-radius: 8px; text-align: center; font-size: 14px; }
+.config-warn code { background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 3px; font-size: 12px; }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <h1 class="title">분양회 자동화 캘린더</h1>
+  <p class="subtitle">광고인㈜ 대외협력팀 · Sandbox 환경</p>
+
+  <div id="config-check"></div>
+  <div id="error-box"></div>
+  <div id="main-content" style="display:none">
+    <div class="cb">
+      <div class="sc">
+        <i>🔍</i>
+        <input id="sin" type="text" placeholder="고객 이름 검색..." autocomplete="off">
+        <span id="sxb" class="xb" style="display:none">✕</span>
+      </div>
+      <button class="btn" id="bnc">+ 회원</button>
+      <button class="btn" id="bah">+ 특발</button>
+      <button class="btn" id="bal">◈ 광고집행</button>
+      <div class="cn">
+        <button class="btn" id="prv" style="padding: 6px 10px">‹</button>
+        <span class="cm" id="ml">2026년 5월</span>
+        <button class="btn" id="nxt" style="padding: 6px 10px">›</button>
+      </div>
+    </div>
+    <div class="fbar" id="fbar"></div>
+    <div id="subbar" style="display:none"></div>
+    <div class="cs">
+      <span class="cs-item"><span class="cs-dot" style="background:#FAEEDA"></span>실행</span>
+      <span class="cs-item"><span class="cs-dot" style="background:#E6F1FB"></span>운영</span>
+      <span class="cs-item"><span class="cs-dot" style="background:#EEEDFE"></span>TF2</span>
+      <span class="cs-item"><span class="cs-dot" style="background:#E1F5EE"></span>컨설턴트</span>
+      <span class="cs-item"><span class="cs-dot" style="background:#FBEAF0"></span>특발</span>
+      <span class="cs-item"><span class="cs-dot" style="background:#FAECE7"></span>광고집행</span>
+      <span class="cs-item">✎ 메모 있음</span>
+      <span id="cnt" class="cnt" style="margin-left:auto"></span>
+    </div>
+    <div class="cg" id="cg"></div>
+    <div class="pn" id="dp" style="display:none"></div>
+  </div>
+  <div id="loading" class="loading">로딩 중...</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+// ═══════════════════════════════════════════════════════════════
+// ⚠️  여기 두 줄을 본인의 Supabase 프로젝트 정보로 교체하세요
+// 
+// Supabase Dashboard → Settings → API Keys → "Legacy anon, service_role API keys" 탭
+//   Project URL → SUPABASE_URL
+//   anon public key (eyJ...로 시작) → SUPABASE_ANON_KEY
+// ═══════════════════════════════════════════════════════════════
+const SUPABASE_URL      = 'YOUR_SUPABASE_URL';
+const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+// ═══════════════════════════════════════════════════════════════
+
+
+if (SUPABASE_URL === 'YOUR_SUPABASE_URL' || SUPABASE_ANON_KEY === 'YOUR_SUPABASE_ANON_KEY') {
+  document.getElementById('config-check').innerHTML = `
+    <div class="config-warn">
+      ⚠️ Supabase 정보를 입력해주세요<br><br>
+      <span style="font-size:12px;font-weight:normal">이 HTML 파일을 텍스트 편집기로 열어서 <code>SUPABASE_URL</code>과 <code>SUPABASE_ANON_KEY</code> 값을 본인 Supabase 정보로 교체한 후 다시 새로고침하세요.</span>
+    </div>`;
+  document.getElementById('loading').style.display = 'none';
+} else {
+  startApp();
+}
+
+
+function startApp() {
+  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  let HD = {};
+
+  const ADP = [
+    [1, '광고 효과 모니터링 시작', ''],
+    [3, '1차 효과 체크 + 카톡방 공유', ''],
+    [7, '1차 리포트 발행', ''],
+    [14, '2차 리포트 + KPI 점검', ''],
+    [21, '3차 리포트 + 갱신 제안', '']
+  ];
+
+  const TEAMS = {
+    EXEC:    { bg: '#FAEEDA', fg: '#412402', label: '실행파트' },
+    OPS:     { bg: '#E6F1FB', fg: '#042C53', label: '운영파트' },
+    TF2:     { bg: '#EEEDFE', fg: '#26215C', label: 'TF2팀' },
+    CONSULT: { bg: '#E1F5EE', fg: '#04342C', label: '컨설턴트' },
+    ADHOC:   { bg: '#FBEAF0', fg: '#4B1528', label: '특발' },
+    AD:      { bg: '#FAECE7', fg: '#4A1B0C', label: '광고집행' }
+  };
+
+  const FILTERS = [
+    ['전체', '전체', 'GRAY'],
+    ['운영파트', '운영파트', 'OPS'],
+    ['조계현', '조계현', 'OWNER'],
+    ['이세호', '이세호', 'OWNER'],
+    ['기여운', '기여운', 'OWNER'],
+    ['최연전', '최연전', 'OWNER']
+  ];
+
+  const S = {
+    customers: [],
+    tasks: [],
+    search: '',
+    view: { y: 2026, m: 4 },
+    filter: new Set(['전체']),
+    opsSub: '전체',
+    selected: null,
+    mode: 'closed'
+  };
+
+
+  // 운영-실행 자동 매칭 규칙
+  function computeOps(owner) {
+    if (owner === '이세호' || owner === '기여운') return '김재영';
+    return '최은정'; // 조계현, 최연전
+  }
+
+
+  function pad(n) { return String(n).padStart(2, '0'); }
+  function iso(d) { return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; }
+  function pi(s) { const [y,m,d] = s.split('-').map(Number); return new Date(y, m-1, d); }
+  function isB(d) {
+    const w = d.getDay();
+    if (w === 0 || w === 6) return false;
+    if (HD[iso(d)]) return false;
+    return true;
+  }
+  function aB(start, n) {
+    const d = new Date(start);
+    let c = 0;
+    while (c < n) {
+      d.setDate(d.getDate() + 1);
+      if (isB(d)) c++;
+    }
+    return d;
+  }
+  function esc(s) {
+    return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+  function showError(msg) {
+    document.getElementById('error-box').innerHTML = `<div class="error">${esc(msg)}</div>`;
+    setTimeout(() => { document.getElementById('error-box').innerHTML = ''; }, 5000);
+  }
+
+
+  async function loadAll() {
+    try {
+      const [hRes, cRes, tRes] = await Promise.all([
+        sb.from('korean_holidays').select('*'),
+        sb.from('customers').select('*').order('admission_date', { ascending: false }),
+        sb.from('customer_tasks').select('*').order('scheduled_date')
+      ]);
+      
+      if (hRes.error) throw hRes.error;
+      if (cRes.error) throw cRes.error;
+      if (tRes.error) throw tRes.error;
+
+      HD = {};
+      (hRes.data || []).forEach(h => { HD[h.date] = h.name; });
+      S.customers = cRes.data || [];
+      S.tasks = tRes.data || [];
+
+      // ★ 메모 저장 즉시 반영을 위해 selected 새로고침
+      if (S.selected) {
+        const fresh = S.tasks.find(x => x.id === S.selected.id);
+        if (fresh) {
+          S.selected = fresh;
+        } else {
+          S.selected = null;
+          S.mode = 'closed';
+        }
+      }
+
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('main-content').style.display = 'block';
+      render();
+    } catch (e) {
+      document.getElementById('loading').innerHTML = `<div class="error">데이터 로드 실패: ${esc(e.message)}</div>`;
+    }
+  }
+
+
+  function show(t) {
+    const c = S.customers.find(x => x.id === t.customer_id);
+    if (!c) return false;
+    if (S.search && !c.name.toLowerCase().includes(S.search.toLowerCase())) return false;
+    if (S.filter.has('전체')) return true;
+    if (S.filter.has(c.owner)) return true;
+    if (S.filter.has('운영파트') && t.team === 'OPS') {
+      if (S.opsSub === '전체') return true;
+      return c.ops_assignee === S.opsSub;
+    }
+    return false;
+  }
+
+
+  function render() {
+    document.getElementById('ml').textContent = `${S.view.y}년 ${S.view.m + 1}월`;
+    renderFilters();
+    renderGrid();
+    renderPanel();
+  }
+
+  function renderFilters() {
+    const fb = document.getElementById('fbar');
+    fb.innerHTML = FILTERS.map(([k, l, kind]) => {
+      const on = S.filter.has(k);
+      let cls = 'fchip', sty = '';
+      if (!on) cls += ' off';
+      else if (kind === 'OPS') sty = 'background:#85B7EB;color:#042C53;border-color:#185FA5';
+      else if (kind === 'OWNER') sty = 'background:#FAEEDA;color:#412402;border-color:#BA7517';
+      else sty = 'background:#D3D1C7;color:#2C2C2A;border-color:#888780';
+      return `<span class="fchip ${on ? '' : 'off'}" data-k="${k}" style="${sty}">${l}</span>`;
+    }).join('');
+    
+    document.querySelectorAll('.fchip').forEach(el => {
+      el.addEventListener('click', () => {
+        const k = el.dataset.k;
+        if (k === '전체') S.filter = new Set(['전체']);
+        else {
+          S.filter.delete('전체');
+          if (S.filter.has(k)) S.filter.delete(k);
+          else S.filter.add(k);
+          if (S.filter.size === 0) S.filter.add('전체');
+        }
+        render();
+      });
+    });
+
+    const sb_el = document.getElementById('subbar');
+    if (S.filter.has('운영파트')) {
+      sb_el.style.display = 'flex';
+      sb_el.className = 'subbar';
+      sb_el.innerHTML = `<span class="lab">운영 담당:</span>` +
+        ['전체', '김재영', '최은정'].map(n =>
+          `<span class="subchip ${S.opsSub === n ? 'on' : ''}" data-n="${n}">${n}</span>`
+        ).join('');
+      document.querySelectorAll('.subchip').forEach(el => {
+        el.addEventListener('click', () => { S.opsSub = el.dataset.n; render(); });
+      });
+    } else {
+      sb_el.style.display = 'none';
+    }
+  }
+
+  function renderGrid() {
+    const filtered = S.tasks.filter(show);
+    const byDate = {};
+    filtered.forEach(t => { (byDate[t.scheduled_date] = byDate[t.scheduled_date] || []).push(t); });
+
+    const { y, m } = S.view;
+    const fd = new Date(y, m, 1);
+    const so = fd.getDay();
+    const sd = new Date(y, m, 1 - so);
+    const today = '2026-05-06';
+
+    let h = ['일','월','화','수','목','금','토'].map((d, i) =>
+      `<div class="dh ${i===0?'sun':''} ${i===6?'sat':''}">${d}</div>`
+    ).join('');
+
+    for (let i = 0; i < 42; i++) {
+      const d = new Date(sd);
+      d.setDate(d.getDate() + i);
+      const is = iso(d);
+      const muted = d.getMonth() !== m;
+      const dw = d.getDay();
+      const hn = HD[is];
+      const isToday = is === today;
+      const dt = byDate[is] || [];
+
+      let cls = ['num'];
+      if (dw === 0 || hn) cls.push('holiday');
+      if (dw === 6 && !hn) cls.push('sat');
+      if (isToday) cls.push('today');
+
+      const visible = dt.slice(0, 3);
+      const overflow = dt.length - visible.length;
+
+      h += `<div class="cell ${muted ? 'muted' : ''}">
+        <div class="ch"><span class="${cls.join(' ')}">${d.getDate()}</span>${hn ? `<span class="hn">${esc(hn)}</span>` : ''}</div>
+        ${visible.map(t => {
+          const tm = TEAMS[t.team];
+          const c = S.customers.find(x => x.id === t.customer_id);
+          const pre = c ? c.name.charAt(0) : '';
+          const done = t.status === 'DONE';
+          const hasMemo = t.memo && t.memo.trim().length > 0;
+          const memoIcon = hasMemo ? '<span class="memo-i">✎</span>' : '';
+          return `<div class="tk ${done ? 'done' : ''}" data-id="${t.id}" style="background:${tm.bg};color:${tm.fg}">${memoIcon}${pre}·${esc(t.title)}</div>`;
+        }).join('')}
+        ${overflow > 0 ? `<div class="ml">+${overflow} 더보기</div>` : ''}
+      </div>`;
+    }
+
+    document.getElementById('cg').innerHTML = h;
+
+    document.querySelectorAll('.tk').forEach(el => {
+      el.addEventListener('click', () => {
+        const t = S.tasks.find(x => x.id == el.dataset.id);
+        if (t) { S.selected = t; S.mode = 'detail'; render(); }
+      });
+    });
+
+    document.getElementById('cnt').textContent = 
+      `${filtered.length}개 task / ${new Set(filtered.map(x => x.customer_id)).size}명 고객`;
+  }
+
+  function renderPanel() {
+    const p = document.getElementById('dp');
+    const opt = S.customers.map(c => 
+      `<option value="${c.id}">${esc(c.name)} · ${esc(c.owner)}</option>`
+    ).join('');
+
+    if (S.mode === 'ah') {
+      p.style.display = 'block';
+      p.innerHTML = `
+        <h3>+ 특발업무 추가</h3>
+        <div class="fg">
+          <div><label>고객</label><select id="ahcs">${opt}</select></div>
+          <div><label>날짜</label><input type="date" id="ahd" value="${iso(new Date())}"></div>
+          <div><label>담당팀</label><select id="aht">
+            <option value="EXEC">실행파트</option>
+            <option value="OPS">운영파트</option>
+            <option value="TF2">TF2팀</option>
+            <option value="CONSULT">컨설턴트</option>
+          </select></div>
+          <div><label>제목</label><input type="text" id="ahti" placeholder="예: 추가 광고 상담"></div>
+          <div class="full"><label>메모</label><textarea id="ahm"></textarea></div>
+        </div>
+        <div class="pa"><button class="btn btn-pri" id="ahs">저장</button><button class="btn" id="ahc">취소</button></div>`;
+      document.getElementById('ahs').onclick = async () => {
+        const title = document.getElementById('ahti').value.trim();
+        if (!title) return;
+        const cid = parseInt(document.getElementById('ahcs').value);
+        const c = S.customers.find(x => x.id === cid);
+        const team = document.getElementById('aht').value;
+        const assignee = team === 'EXEC' ? c.owner : (team === 'OPS' ? c.ops_assignee : null);
+        const { error } = await sb.from('customer_tasks').insert({
+          customer_id: cid,
+          template_code: 'ADHOC',
+          scheduled_date: document.getElementById('ahd').value,
+          team: 'ADHOC',
+          assignee, title,
+          memo: document.getElementById('ahm').value,
+          is_ad_hoc: true
+        });
+        if (error) { showError(error.message); return; }
+        S.mode = 'closed';
+        await loadAll();
+      };
+      document.getElementById('ahc').onclick = () => { S.mode = 'closed'; render(); };
+      return;
+    }
+
+    if (S.mode === 'nc') {
+      p.style.display = 'block';
+      const initialOwner = '조계현';
+      p.innerHTML = `
+        <h3>+ 새 회원 추가</h3>
+        <div class="hint">대협부 담당자 선택 시 운영 담당자가 자동 매칭됩니다.<br>가입일 기준으로 36개 task가 영업일 자동 펼쳐집니다 (한국 공휴일 회피).</div>
+        <div class="fg">
+          <div><label>이름</label><input type="text" id="ncn" placeholder="홍길동"></div>
+          <div><label>가입일</label><input type="date" id="ncd" value="${iso(new Date())}"></div>
+          <div><label>등급</label><select id="nct"><option>Black</option><option>Gold</option><option selected>Silver</option></select></div>
+          <div><label>대협부 담당자 (실행)</label><select id="nca">
+            <option>조계현</option>
+            <option>이세호</option>
+            <option>기여운</option>
+            <option>최연전</option>
+          </select></div>
+          <div class="full"><label>운영 담당 — 자동 매칭</label><input type="text" id="nco" disabled value="${computeOps(initialOwner)}"></div>
+        </div>
+        <div class="pa"><button class="btn btn-pri" id="ncs">추가 (자동 발동)</button><button class="btn" id="ncc">취소</button></div>`;
+      
+      document.getElementById('nca').addEventListener('change', e => {
+        document.getElementById('nco').value = computeOps(e.target.value);
+      });
+
+      document.getElementById('ncs').onclick = async () => {
+        const name = document.getElementById('ncn').value.trim();
+        if (!name) return;
+        const ad = document.getElementById('ncd').value;
+        const owner = document.getElementById('nca').value;
+        const opsAsg = computeOps(owner);
+        
+        const { data: c, error: e1 } = await sb.from('customers').insert({
+          name, admission_date: ad,
+          tier: document.getElementById('nct').value,
+          owner, ops_assignee: opsAsg
+        }).select().single();
+        if (e1) { showError(e1.message); return; }
+
+        const { error: e2 } = await sb.rpc('trigger_template_for_customer', {
+          p_customer_id: c.id,
+          p_template_code: 'ONBOARDING',
+          p_trigger_date: ad
+        });
+        if (e2) { showError(e2.message); return; }
+
+        await sb.from('customer_tasks').update({ assignee: owner })
+          .eq('customer_id', c.id).eq('team', 'EXEC');
+        await sb.from('customer_tasks').update({ assignee: opsAsg })
+          .eq('customer_id', c.id).eq('team', 'OPS');
+
+        const d = pi(ad);
+        S.view = { y: d.getFullYear(), m: d.getMonth() };
+        S.search = name;
+        document.getElementById('sin').value = name;
+        document.getElementById('sxb').style.display = 'inline';
+        S.mode = 'closed';
+        await loadAll();
+      };
+      document.getElementById('ncc').onclick = () => { S.mode = 'closed'; render(); };
+      return;
+    }
+
+    if (S.mode === 'al') {
+      p.style.display = 'block';
+      p.innerHTML = `
+        <h3>◈ 광고집행 발동</h3>
+        <div class="hint">고객 선택 + 광고 시작일 → 5개 task 추가 (D+1/D+3/D+7/D+14/D+21)</div>
+        <div class="fg">
+          <div><label>고객</label><select id="alcs">${opt}</select></div>
+          <div><label>광고 시작일</label><input type="date" id="ald" value="${iso(new Date())}"></div>
+        </div>
+        <div class="pa"><button class="btn btn-pri" id="als">발동</button><button class="btn" id="alc">취소</button></div>`;
+      document.getElementById('als').onclick = async () => {
+        const cid = parseInt(document.getElementById('alcs').value);
+        const startDate = document.getElementById('ald').value;
+        const tasks = ADP.map(([day, title, note]) => ({
+          customer_id: cid,
+          template_code: 'AD_LAUNCH',
+          scheduled_date: iso(aB(pi(startDate), day)),
+          team: 'AD',
+          title, note,
+          trigger_date: startDate
+        }));
+        const { error } = await sb.from('customer_tasks').insert(tasks);
+        if (error) { showError(error.message); return; }
+        S.mode = 'closed';
+        await loadAll();
+      };
+      document.getElementById('alc').onclick = () => { S.mode = 'closed'; render(); };
+      return;
+    }
+
+    if (!S.selected || S.mode !== 'detail') {
+      p.style.display = 'none';
+      return;
+    }
+
+    const t = S.selected;
+    const tm = TEAMS[t.team];
+    const c = S.customers.find(x => x.id === t.customer_id);
+    const done = t.status === 'DONE';
+    const hasMemo = t.memo && t.memo.trim().length > 0;
+    p.style.display = 'block';
+    p.innerHTML = `
+      <div class="pr">
+        <span class="pt" style="background:${tm.bg};color:${tm.fg}">${tm.label}${t.assignee ? ` · ${esc(t.assignee)}` : ''}</span>
+        ${t.template_code === 'ONBOARDING' ? '<span class="pt" style="background:#2a2a2e;color:#888">온보딩</span>' : ''}
+        ${t.template_code === 'AD_LAUNCH' ? '<span class="pt" style="background:#FAECE7;color:#4A1B0C">광고집행</span>' : ''}
+        ${t.is_ad_hoc ? '<span class="pt" style="background:#FBEAF0;color:#4B1528">특발</span>' : ''}
+        ${hasMemo ? '<span class="pt" style="background:#1d9e75;color:#fff">✎ 메모있음</span>' : ''}
+        <span style="font-size:12px;color:#888">${t.scheduled_date} · ${esc(c?.name || '')} (담당 ${esc(c?.owner || '')})</span>
+        <button class="btn" id="pcl" style="margin-left:auto;padding:3px 10px;font-size:12px">닫기</button>
+      </div>
+      <h3>${esc(t.title)}</h3>
+      ${t.note ? `<p style="font-size:12px;color:#888;margin:0 0 12px">${esc(t.note)}</p>` : ''}
+      <label class="cr"><input type="checkbox" id="pdn" ${done ? 'checked' : ''}> 완료 처리</label>
+      <label style="display:block;font-size:11px;color:#888;margin-bottom:4px">메모</label>
+      <textarea id="pmm" placeholder="진행 메모, 고객의 소리, 보완사항">${esc(t.memo || '')}</textarea>
+      <div class="pa">
+        <button class="btn btn-pri" id="psv">저장</button>
+        ${t.is_ad_hoc || t.template_code === 'AD_LAUNCH' ? '<button class="btn btn-dan" id="pdl">삭제</button>' : ''}
+        <span id="saved-msg" class="saved-msg" style="display:none">✓ 저장됨</span>
+      </div>`;
+    
+    document.getElementById('pcl').onclick = () => { S.selected = null; S.mode = 'closed'; render(); };
+    document.getElementById('psv').onclick = async () => {
+      const newDone = document.getElementById('pdn').checked;
+      const newMemo = document.getElementById('pmm').value;
+      const { error } = await sb.from('customer_tasks').update({
+        status: newDone ? 'DONE' : 'TODO',
+        memo: newMemo,
+        completed_at: newDone ? new Date().toISOString() : null
+      }).eq('id', t.id);
+      if (error) { showError(error.message); return; }
+      await loadAll();
+      // loadAll에서 S.selected를 fresh로 업데이트 → 패널이 저장된 메모 보여줌
+      const msg = document.getElementById('saved-msg');
+      if (msg) {
+        msg.style.display = 'inline';
+        setTimeout(() => {
+          const m = document.getElementById('saved-msg');
+          if (m) m.style.display = 'none';
+        }, 2000);
+      }
+    };
+    if (t.is_ad_hoc || t.template_code === 'AD_LAUNCH') {
+      document.getElementById('pdl').onclick = async () => {
+        const { error } = await sb.from('customer_tasks').delete().eq('id', t.id);
+        if (error) { showError(error.message); return; }
+        S.selected = null;
+        S.mode = 'closed';
+        await loadAll();
+      };
+    }
+  }
+
+
+  document.getElementById('sin').addEventListener('input', e => {
+    S.search = e.target.value;
+    document.getElementById('sxb').style.display = e.target.value ? 'inline' : 'none';
+    render();
+  });
+  document.getElementById('sxb').addEventListener('click', () => {
+    S.search = '';
+    document.getElementById('sin').value = '';
+    document.getElementById('sxb').style.display = 'none';
+    render();
+  });
+  document.getElementById('prv').addEventListener('click', () => {
+    S.view.m--;
+    if (S.view.m < 0) { S.view.m = 11; S.view.y--; }
+    render();
+  });
+  document.getElementById('nxt').addEventListener('click', () => {
+    S.view.m++;
+    if (S.view.m > 11) { S.view.m = 0; S.view.y++; }
+    render();
+  });
+  document.getElementById('bnc').addEventListener('click', () => { S.mode = 'nc'; S.selected = null; render(); });
+  document.getElementById('bah').addEventListener('click', () => { S.mode = 'ah'; S.selected = null; render(); });
+  document.getElementById('bal').addEventListener('click', () => { S.mode = 'al'; S.selected = null; render(); });
+
+  loadAll();
+}
+</script>
+</body>
+</html>
